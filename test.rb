@@ -10,14 +10,14 @@ class ParseCommandlineArgsTest < Test::Unit::TestCase
     "Minimum",
     [
       ["/path/to/file.log"],
-      ["/path/to/file.log", "shift_jis", nil, false]
+      ["/path/to/file.log", "shift_jis", nil, false, nil]
     ]
   )
   data(
     "Full",
     [
-      ["/path/to/file.log", "--encoding", "utf-8", "--hour", "20", "--move"],
-      ["/path/to/file.log", "utf-8", 20, true]
+      ["/path/to/file.log", "--encoding", "utf-8", "--hour", "20", "--move", "--status-file", "/path/to/status"],
+      ["/path/to/file.log", "utf-8", 20, true, "/path/to/status"]
     ]
   )
   test "Can parse correct args" do |(args, expected_results)|
@@ -116,12 +116,12 @@ class ReadTest < Test::Unit::TestCase
     make_testfile(filepath, content)
 
     Timecop.freeze(2024, 7, 9, 0, 0, 0) do
-      result = read(filepath.to_s, "utf-8", 20, false)
+      result = read(filepath.to_s, "utf-8", 20, false, nil)
       assert_nil result
     end
 
     Timecop.freeze(2024, 7, 9, 20, 0, 0) do
-      result = read(filepath.to_s, "utf-8", 20, false)
+      result = read(filepath.to_s, "utf-8", 20, false, nil)
       assert_equal content, result
     end
   end
@@ -142,5 +142,32 @@ class ReadTest < Test::Unit::TestCase
     result, status = Open3.capture2e("ruby", "read-file.rb", filepath.to_s, "--move")
     assert_equal 0, status.exitstatus
     assert_equal "", result
+  end
+
+  test "Can read file with status" do
+    filepath = @tmp_dir + "test"
+    status_path = @tmp_dir + "status"
+    content = <<~CONTENT
+      sample log
+      日本語のログ
+    CONTENT
+    make_testfile(filepath, content)
+
+    Timecop.freeze(2024, 7, 9, 20, 0, 0) do
+      result = read(filepath.to_s, "utf-8", 20, false, status_path.to_s)
+      assert_equal content, result
+    end
+    Timecop.freeze(2024, 7, 9, 20, 59, 59) do
+      result = read(filepath.to_s, "utf-8", 20, false, status_path.to_s)
+      assert_nil result
+    end
+    Timecop.freeze(2024, 7, 10, 0, 0, 0) do
+      result = read(filepath.to_s, "utf-8", 20, false, status_path.to_s)
+      assert_nil result
+    end
+    Timecop.freeze(2024, 7, 10, 20, 0, 0) do
+      result = read(filepath.to_s, "utf-8", 20, false, status_path.to_s)
+      assert_equal content, result
+    end
   end
 end

@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 
 require "optparse"
+require 'fileutils'
+require "date"
 
 def parse_commandline_args(args)
   args = args.dup
@@ -8,10 +10,12 @@ def parse_commandline_args(args)
   encoding = "shift_jis"
   hour = nil
   move = false
+  status_file = nil
 
   parser = OptionParser.new
   parser.banner = <<~BANNER
     Usage: read-file.rb path [options]
+    Example: ruby read-file.rb /path/to/file.log --hour 20 --status-file /path/to/status
     Example: ruby read-file.rb /path/to/file.log --hour 20 --move
 
   BANNER
@@ -23,6 +27,9 @@ def parse_commandline_args(args)
   end
   parser.on("--move", "Move the file after collecting to prevent duplicate collecting by adding `.collected` extension.", "Default: Disabled") do
     move = true
+  end
+  parser.on("--status-file PATH", "Prevent duplicate collecting in the day by keeping the last collecting time in the file.", "Default: Disabled") do |v|
+    status_file = v
   end
 
   begin
@@ -60,19 +67,64 @@ def parse_commandline_args(args)
 
   path = args.first
 
-  return path, encoding, hour, move
+  return path, encoding, hour, move, status_file
 end
 
-def read(path, encoding, hour, move)
-  return nil if hour and Time.now.hour != hour
+class Status
+  def initialize(status_file)
+    @status_file = status_file
+
+    dir = File.dirname(@status_file)
+    FileUtils.mkdir_p(dir) unless Dir.exist?(dir)
+  end
+
+  def status
+    return {} unless File.exist?(@status_file)
+    File.open(@status_file, "rb") do |f|
+      return Marshal.load(f)
+    end
+  end
+
+  def update_status(status)
+    File.open(@status_file, "wb") do |f|
+      Marshal.dump(status, f)
+    end
+  end
+
+  def last_collection_time
+    status["last_collection_time"]
+  end
+
+  def update_last_collection_time(last_collection_time)
+    current_status = status
+    current_status["last_collection_time"] = last_collection_time
+    update_status(current_status)
+  end
+end
+
+def same_date?(time, another)
+  time.to_date == another.to_date
+end
+
+def read(path, encoding, hour, move, status_file)
+  current_time = Time.now
+
+  return nil if hour and hour != current_time.hour
+  if status_file
+    status = Status.new(status_file)
+    last_collection_time = status.last_collection_time
+    return nil if last_collection_time and same_date?(last_collection_time, current_time)
+  end
+
   return nil unless File.exist?(path)
 
   content = File.read(path, mode: "rb", encoding: encoding)
 
   if move
-    require 'fileutils'
     FileUtils.mv(path, path + '.collected')
   end
+
+  status.update_last_collection_time(current_time) if status_file
 
   content
 end
