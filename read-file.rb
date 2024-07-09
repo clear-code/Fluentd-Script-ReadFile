@@ -27,7 +27,9 @@ def parse_commandline_args(args)
 
   begin
     parser.parse!(args)
-  rescue OptionParser::ParseError
+  rescue OptionParser::ParseError => e
+    puts e
+    puts parser.help
     return nil
   end
 
