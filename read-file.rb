@@ -35,33 +35,33 @@ def parse_commandline_args(args)
   begin
     parser.parse!(args)
   rescue OptionParser::ParseError => e
-    puts e
-    puts parser.help
+    $stderr.puts e
+    $stderr.puts parser.help
     return nil
   end
 
   begin
     Encoding.find(encoding)
   rescue ArgumentError => e
-    puts e
-    puts parser.help
+    $stderr.puts e
+    $stderr.puts parser.help
     return nil
   end
 
   if hour and (hour < 0 or hour > 23)
-    puts "--hour #{hour} must be an integer from 0 to 23."
-    puts parser.help
+    $stderr.puts "--hour #{hour} must be an integer from 0 to 23."
+    $stderr.puts parser.help
     return nil
   end
 
   if args.size == 0
-    puts "Need the filepath to collect."
-    puts parser.help
+    $stderr.puts "Need the filepath to collect."
+    $stderr.puts parser.help
     return nil
   end
   if args.size > 1
-    puts "Invalid arguments: #{args[1..]}"
-    puts parser.help
+    $stderr.puts "Invalid arguments: #{args[1..]}"
+    $stderr.puts parser.help
     return nil
   end
 
