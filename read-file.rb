@@ -21,7 +21,7 @@ def parse_commandline_args(args)
   parser.on("--hour HOUR", "Execute collection only at this hour.", "Default: Disabled", Integer) do |v|
     hour = v
   end
-  parser.on("--move", "move the file after collecting to prevent duplicate colleting by adding `.collected` extension.", "Default: Disabled") do
+  parser.on("--move", "Move the file after collecting to prevent duplicate collecting by adding `.collected` extension.", "Default: Disabled") do
     move = true
   end
 
