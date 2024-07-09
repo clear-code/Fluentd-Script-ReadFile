@@ -11,6 +11,7 @@ def parse_commandline_args(args)
   hour = nil
   move = false
   status_file = nil
+  dry_run = false
 
   parser = OptionParser.new
   parser.banner = <<~BANNER
@@ -30,6 +31,9 @@ def parse_commandline_args(args)
   end
   parser.on("--status-file PATH", "Prevent duplicate collecting in the day by keeping the last collecting time in the file.", "Default: Disabled") do |v|
     status_file = v
+  end
+  parser.on("--dry-run", "For test. The file is not moved and the status file is not updated.") do
+    dry_run = true
   end
 
   begin
@@ -67,7 +71,7 @@ def parse_commandline_args(args)
 
   path = args.first
 
-  return path, encoding, hour, move, status_file
+  return path, encoding, hour, move, status_file, dry_run
 end
 
 class Status
@@ -106,7 +110,7 @@ def same_date?(time, another)
   time.to_date == another.to_date
 end
 
-def read(path, encoding, hour, move, status_file)
+def read(path, encoding, hour, move, status_file, dry_run)
   current_time = Time.now
 
   return nil if hour and hour != current_time.hour
@@ -120,11 +124,13 @@ def read(path, encoding, hour, move, status_file)
 
   content = File.read(path, mode: "r", encoding: encoding)
 
-  if move
-    FileUtils.mv(path, path + '.collected')
-  end
+  unless dry_run
+    if move
+      FileUtils.mv(path, path + '.collected')
+    end
 
-  status.update_last_collection_time(current_time) if status_file
+    status.update_last_collection_time(current_time) if status_file
+  end
 
   content
 end

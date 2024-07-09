@@ -21,6 +21,7 @@ Example: ruby read-file.rb /path/to/file.log --hour 20 --move
                                      Default: Disabled
         --status-file PATH           Prevent duplicate collecting in the day by keeping the last collecting time in the file.
                                      Default: Disabled
+        --dry-run                    For test. The file is not moved and the status file is not updated.
 ```
 
 ### With in_exec of Fluentd
