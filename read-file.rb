@@ -118,7 +118,7 @@ def read(path, encoding, hour, move, status_file)
 
   return nil unless File.exist?(path)
 
-  content = File.read(path, mode: "rb", encoding: encoding)
+  content = File.read(path, mode: "r", encoding: encoding)
 
   if move
     FileUtils.mv(path, path + '.collected')
